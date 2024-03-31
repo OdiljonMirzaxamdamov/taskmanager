@@ -1,51 +1,142 @@
+import API from "./api.js";
 import BoardComponent from "./components/board.js";
 import BoardController from "./controllers/board.js";
-import FilterComponent from "./components/filter.js";
-import SiteMenuComponent from "./components/site-menu.js";
-import {generateFilters} from "./mock/filter.js";
-import {generateTasks} from "./mock/task.js";
+import FilterController from "./controllers/filter.js";
+import SiteMenuComponent, {MenuItem} from "./components/site-menu.js";
+import StatisticsComponent from "./components/statistics.js";
+import TasksModel from "./models/tasks.js";
 import {render, RenderPosition} from "./utils/render.js";
 
+const AUTHORIZATION = `Basic dXNlckBwYXNzd2jg9yZAo=`;
+const END_POINT = `https://11.ecmascript.pages.academy/task-manager`;
 
-/**
- * Общее количество задач
- */
-const TASK_COUNT = 22;
+const dateTo = new Date();
+const dateFrom = (() => {
+  const d = new Date(dateTo);
+  d.setDate(d.getDate() - 7);
+  return d;
+})();
 
-/**
- * Элемент, внутри которого будет рендериться вся страница
- */
+const api = new API(END_POINT, AUTHORIZATION);
+const tasksModel = new TasksModel();
+
 const siteMainElement = document.querySelector(`.main`);
-
-/**
- * Меню сайта
- */
 const siteHeaderElement = siteMainElement.querySelector(`.main__control`);
+const siteMenuComponent = new SiteMenuComponent();
 
-/**
- * Все задачи, которые генерируем (потом будут приходить с сервера)
- */
-const tasks = generateTasks(TASK_COUNT);
-
-/**
- * Все фильтры, которые генерируем (потом будут приходить с сервера)
- */
-const filters = generateFilters();
-
-render(siteHeaderElement, new SiteMenuComponent(), RenderPosition.BEFOREEND);
-render(siteMainElement, new FilterComponent(filters), RenderPosition.BEFOREEND);
-
-/**
- * Компонент, внутри которого будет рендериться доска (container)
- */
 const boardComponent = new BoardComponent();
-render(siteMainElement, boardComponent, RenderPosition.BEFOREEND);
 
-/**
- * Контроллер доски
- */
-const boardController = new BoardController(boardComponent);
-boardController.render(tasks);
+const boardController = new BoardController(boardComponent, tasksModel, api);
+const filterController = new FilterController(siteMainElement, tasksModel);
+
+const statisticsComponent = new StatisticsComponent({tasks: tasksModel, dateFrom, dateTo});
+render(siteHeaderElement, siteMenuComponent, RenderPosition.BEFOREEND);
+filterController.render();
+render(siteMainElement, boardComponent, RenderPosition.BEFOREEND);
+render(siteMainElement, statisticsComponent, RenderPosition.BEFOREEND);
+statisticsComponent.hide();
+
+siteMenuComponent.setOnChange((menuItem) => {
+  switch (menuItem) {
+    case MenuItem.NEW_TASK:
+      siteMenuComponent.setActiveItem(MenuItem.TASKS);
+      boardController.createTask();
+      break;
+    case MenuItem.STATISTICS:
+      boardController.hide();
+      statisticsComponent.show();
+      break;
+    case MenuItem.TASKS:
+      statisticsComponent.hide();
+      boardController.show();
+      break;
+  }
+});
+
+api.getTasks()
+  .then((tasks) => {
+    tasksModel.setTasks(tasks);
+    boardController.render();
+  });
+
+
+// 7-лекция архив -------------------------------------------------------
+// /**
+//  * Общее количество задач
+//  */
+// const TASK_COUNT = 22;
+//
+// /**
+//  * Элемент, внутри которого будет рендериться вся страница
+//  */
+// const siteMainElement = document.querySelector(`.main`);
+//
+// /**
+//  * Меню сайта
+//  */
+// const siteHeaderElement = siteMainElement.querySelector(`.main__control`);
+// /** Инстанс компонента "Меню" */
+// const siteMenuComponent = new SiteMenuComponent();
+// render(siteHeaderElement, siteMenuComponent, RenderPosition.BEFOREEND);
+//
+// /**
+//  * Все задачи, которые генерируем (потом будут приходить с сервера)
+//  */
+// const tasks = generateTasks(TASK_COUNT);
+//
+// /**
+//  * Инстанс модели "Задачи"
+//  * */
+// const tasksModel = new TasksModel();
+// tasksModel.setTasks(tasks);
+//
+// /**
+//  * Все фильтры, которые генерируем (потом будут приходить с сервера)
+//  */
+// const filterController = new FilterController(siteMainElement, tasksModel);
+// filterController.render();
+//
+// /**
+//  * Компонент, внутри которого будет рендериться доска (container)
+//  */
+// const boardComponent = new BoardComponent();
+// render(siteMainElement, boardComponent, RenderPosition.BEFOREEND);
+//
+// /**
+//  * Контроллер доски
+//  */
+// const boardController = new BoardController(boardComponent, tasksModel);
+// boardController.render();
+//
+//
+// const dateTo = new Date();
+// const dateFrom = (() => {
+//   const d = new Date(dateTo);
+//   d.setDate(d.getDate() - 7);
+//   return d;
+// })();
+// const statisticsComponent = new StatisticsComponent({tasks: tasksModel, dateFrom, dateTo});
+// render(siteMainElement, statisticsComponent, RenderPosition.BEFOREEND);
+// statisticsComponent.hide();
+//
+// siteMenuComponent.setOnChange((menuItem) => {
+//   switch (menuItem) {
+//     case MenuItem.NEW_TASK:
+//       siteMenuComponent.setActiveItem(MenuItem.TASKS);
+//       statisticsComponent.hide();
+//       boardController.show();
+//       boardController.createTask();
+//       break;
+//     case MenuItem.STATISTICS:
+//       boardController.hide();
+//       statisticsComponent.show();
+//       break;
+//     case MenuItem.TASKS:
+//       statisticsComponent.hide();
+//       boardController.show();
+//       break;
+//   }
+// });
 
 
 // 4-лекция архив -------------------------------------------------------

@@ -1,9 +1,9 @@
 /* eslint-disable valid-jsdoc */
 
 import AbstractComponent from "./abstract-component.js";
-import {formatTime} from "../utils/common.js";
+import {formatTime, isOverdueDate} from "../utils/common.js";
 import {MONTH_NAMES} from "../const.js";
-
+import {encode} from "he";
 
 /**
  * Функция создания разметки кнопок Edit, Archive, Favorite на карточке
@@ -24,10 +24,10 @@ const createButtonMarkup = (name, isActive = true) => {
  * @param {Object} task Задача
  */
 const createTaskTemplate = (task) => {
-  const {description, dueDate, color, repeatingDays, isArchive, isFavorite} = task;
+  const {description: notSanitizedDescription, dueDate, color, repeatingDays, isArchive, isFavorite} = task;
 
   /** Флаг: Срок задачи истек? */
-  const isExpired = dueDate instanceof Date && dueDate < Date.now();
+  const isExpired = dueDate instanceof Date && isOverdueDate(dueDate, Date.now());
   /** Флаг: Дата показана? */
   const isDateShowing = !!dueDate;
 
@@ -37,6 +37,7 @@ const createTaskTemplate = (task) => {
   /** Время выполнения задачи */
   const time = isDateShowing ? formatTime(dueDate) : ``;
 
+  const description = encode(notSanitizedDescription);
 
   /** Разметка для кнопки Edit */
   const editButton = createButtonMarkup(`edit`);
